@@ -25,12 +25,18 @@ public class StepTracker implements SensorEventListener {
     private double lastMagnitude = 0;
     private boolean firstStep = true;
 
+    // Kalman filter variables
+    private double kalmanEstimate = 0; // Current state estimate
+    private double kalmanErrorCovariance = 1; // Current error covariance
+    private double kalmanProcessNoise = 0.01; // Process noise variance
+    private double kalmanMeasurementNoise = 0.1; // Measurement noise variance
+    private double kalmanGain = 0; // Kalman gain
+
     private final StepUpdateListener stepUpdateListener;
 
     public interface StepUpdateListener {
         void onStepChanged(int stepCount);
     }
-
 
     public StepTracker(Context context) {
         this(context, null);
@@ -40,6 +46,13 @@ public class StepTracker implements SensorEventListener {
         this.stepUpdateListener = listener;
         sensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
         accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        // Initialize Kalman filter with default values
+        initKalmanFilter();
+    }
+
+    private void initKalmanFilter() {
+        kalmanEstimate = 0;
+        kalmanErrorCovariance = 1;
     }
 
     public void start() {
@@ -88,17 +101,41 @@ public class StepTracker implements SensorEventListener {
 
         // Calculate acceleration vector magnitude
         double magnitude = Math.sqrt(x * x + y * y + z * z);
+        
+        // Apply Kalman filter to the magnitude
+        double filteredMagnitude = applyKalmanFilter(magnitude);
 
         // Calculate average magnitude for smoothing
         double averageMagnitude = calculateAverageMagnitude();
 
-        // Step detection logic based on magnitude changes
-        if (detectStep(magnitude, averageMagnitude)) {
+        // Step detection logic based on filtered magnitude changes
+        if (detectStep(filteredMagnitude, averageMagnitude)) {
             stepCount++;
             notifyStepUpdate();
         }
 
-        lastMagnitude = magnitude;
+        lastMagnitude = filteredMagnitude;
+    }
+
+    private double applyKalmanFilter(double measurement) {
+        // Prediction step
+        // State prediction (no control input, so just use previous state)
+        double predictedEstimate = kalmanEstimate;
+        
+        // Error covariance prediction
+        double predictedErrorCovariance = kalmanErrorCovariance + kalmanProcessNoise;
+        
+        // Update step
+        // Calculate Kalman gain
+        kalmanGain = predictedErrorCovariance / (predictedErrorCovariance + kalmanMeasurementNoise);
+        
+        // Update estimate with measurement
+        kalmanEstimate = predictedEstimate + kalmanGain * (measurement - predictedEstimate);
+        
+        // Update error covariance
+        kalmanErrorCovariance = (1 - kalmanGain) * predictedErrorCovariance;
+        
+        return kalmanEstimate;
     }
 
     private double calculateAverageMagnitude() {
@@ -117,13 +154,13 @@ public class StepTracker implements SensorEventListener {
             return false;
         }
 
-        // Step is detected when magnitude exceeds the average by threshold
+        // Step is detected when filtered magnitude exceeds the average by threshold
         // and the previous magnitude was lower
         boolean isStep = currentMagnitude > averageMagnitude + STEP_THRESHOLD &&
                 lastMagnitude <= averageMagnitude + STEP_THRESHOLD;
 
         if (isStep) {
-            Log.d(TAG, "Step detected");
+            Log.d(TAG, "Step detected with filtered magnitude: " + currentMagnitude);
         }
 
         return isStep;
