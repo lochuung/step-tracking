@@ -1,6 +1,7 @@
 package hcmute.edu.vn.huuloc.steptracking.view;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
@@ -82,26 +83,13 @@ public class MainActivity extends AppCompatActivity implements StepTrackingContr
     }
 
     private void setupButtonListeners() {
-        buttonStartTracking.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                startTracking();
-            }
-        });
+        buttonStartTracking.setOnClickListener(v -> startTracking());
 
-        buttonStopTracking.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                stopTracking();
-            }
-        });
+        buttonStopTracking.setOnClickListener(v -> stopTracking());
 
-        buttonReset.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                stepTrackingController.resetSteps();
-                updateStepCountUI(0);
-            }
+        buttonReset.setOnClickListener(v -> {
+            stepTrackingController.resetSteps();
+            updateStepCountUI(0);
         });
     }
 
@@ -136,6 +124,7 @@ public class MainActivity extends AppCompatActivity implements StepTrackingContr
         }
     }
 
+    @SuppressLint("SetTextI18n")
     private void updateTrackingUI(boolean tracking) {
         buttonStartTracking.setEnabled(!tracking);
         buttonStopTracking.setEnabled(tracking);
@@ -167,6 +156,7 @@ public class MainActivity extends AppCompatActivity implements StepTrackingContr
         updateDistanceUI(totalSteps);
     }
 
+    @SuppressLint("DefaultLocale")
     private void updateDistanceUI(int steps) {
         double distanceInKm = (steps * STRIDE_LENGTH) / 1000;
         textViewTodayTotal.setText(String.format("%.2f", distanceInKm));
