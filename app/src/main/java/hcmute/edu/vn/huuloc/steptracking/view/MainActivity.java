@@ -1,4 +1,4 @@
-package hcmute.edu.vn.huuloc.steptracking;
+package hcmute.edu.vn.huuloc.steptracking.view;
 
 import android.os.Bundle;
 
@@ -7,6 +7,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+
+import hcmute.edu.vn.huuloc.steptracking.R;
 
 public class MainActivity extends AppCompatActivity {
 
