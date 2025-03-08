@@ -31,6 +31,11 @@ public class StepTracker implements SensorEventListener {
         void onStepChanged(int stepCount);
     }
 
+
+    public StepTracker(Context context) {
+        this(context, null);
+    }
+
     public StepTracker(Context context, StepUpdateListener listener) {
         this.stepUpdateListener = listener;
         sensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);

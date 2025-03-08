@@ -1,5 +1,8 @@
 package hcmute.edu.vn.huuloc.steptracking.controller;
 
+import static hcmute.edu.vn.huuloc.steptracking.viewmodel.StepTrackingViewModel.STRIDE_LENGTH;
+
+import android.annotation.SuppressLint;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -7,15 +10,17 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
-import android.os.Build;
 import android.os.IBinder;
 import android.widget.RemoteViews;
 
 import androidx.core.app.NotificationCompat;
+import androidx.lifecycle.ViewModelProvider;
+import androidx.lifecycle.ViewModelStoreOwner;
 
 import hcmute.edu.vn.huuloc.steptracking.R;
 import hcmute.edu.vn.huuloc.steptracking.listener.StepTracker;
 import hcmute.edu.vn.huuloc.steptracking.view.MainActivity;
+import hcmute.edu.vn.huuloc.steptracking.viewmodel.StepTrackingViewModel;
 import lombok.Getter;
 
 
@@ -26,27 +31,23 @@ public class StepTrackingService extends Service implements StepTracker.StepUpda
     public static final String ACTION_START_FOREGROUND_SERVICE = "ACTION_START_FOREGROUND_SERVICE";
     public static final String ACTION_STOP_FOREGROUND_SERVICE = "ACTION_STOP_FOREGROUND_SERVICE";
     public static final String ACTION_STOP_FROM_NOTIFICATION = "ACTION_STOP_FROM_NOTIFICATION";
+    public static final String EXTRA_STEP_COUNT = "EXTRA_STEP_COUNT";
 
     @Getter
     private static boolean isServiceRunning = false;
-    @Getter
-    private static int currentStepCount = 0;
 
     private StepTrackingController stepTrackingController;
-
-    private final StepTrackingController.StepUpdateListener bridgeListener = this::onStepChanged;
     private NotificationManager notificationManager;
+    private int currentStepCount = 0;
 
     // Average stride length in meters
-    private static final double STRIDE_LENGTH = 0.762;
 
     @Override
     public void onCreate() {
         super.onCreate();
         notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         stepTrackingController = new StepTrackingController(this);
-
-        stepTrackingController.setStepUpdateListener(bridgeListener);
+        stepTrackingController.setStepUpdateListener(this);
 
         // Create notification channel for Android O and above
         createNotificationChannel();
@@ -57,14 +58,25 @@ public class StepTrackingService extends Service implements StepTracker.StepUpda
         if (intent != null) {
             String action = intent.getAction();
 
-            switch (action) {
-                case ACTION_START_FOREGROUND_SERVICE:
-                    startForegroundService();
-                    break;
-                case ACTION_STOP_FOREGROUND_SERVICE:
-                case ACTION_STOP_FROM_NOTIFICATION:
-                    stopForegroundService();
-                    break;
+            if (action != null) {
+                switch (action) {
+                    case ACTION_START_FOREGROUND_SERVICE:
+                        // Check if there's a step count to restore
+                        if (intent.hasExtra(EXTRA_STEP_COUNT)) {
+                            int stepCount = intent.getIntExtra(EXTRA_STEP_COUNT, 0);
+                            stepTrackingController.setStepCount(stepCount);
+                            currentStepCount = stepCount;
+                        } else {
+                            // Otherwise, try to restore from saved preferences
+                            currentStepCount = stepTrackingController.getSavedStepCount();
+                        }
+                        startForegroundService();
+                        break;
+                    case ACTION_STOP_FOREGROUND_SERVICE:
+                    case ACTION_STOP_FROM_NOTIFICATION:
+                        stopForegroundService();
+                        break;
+                }
             }
         }
 
@@ -77,12 +89,18 @@ public class StepTrackingService extends Service implements StepTracker.StepUpda
         stepTrackingController.startTracking();
 
         // Start foreground service with notification
-        startForeground(NOTIFICATION_ID, buildNotification(0));
+        startForeground(NOTIFICATION_ID, buildNotification(currentStepCount));
 
         isServiceRunning = true;
+
+        // Update the ViewModel with current steps
+        updateViewModel(currentStepCount);
     }
 
     private void stopForegroundService() {
+        // Save current step count before stopping
+        currentStepCount = stepTrackingController.getCurrentStepCount();
+
         // Stop step tracking
         stepTrackingController.stopTracking();
 
@@ -93,6 +111,7 @@ public class StepTrackingService extends Service implements StepTracker.StepUpda
         isServiceRunning = false;
     }
 
+    @SuppressLint("DefaultLocale")
     private Notification buildNotification(int stepCount) {
         // Calculate distance
         double distanceInKm = (stepCount * STRIDE_LENGTH) / 1000;
@@ -130,25 +149,34 @@ public class StepTrackingService extends Service implements StepTracker.StepUpda
     }
 
     private void createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel channel = new NotificationChannel(
-                    CHANNEL_ID,
-                    "Fitness App Step Tracking",
-                    NotificationManager.IMPORTANCE_HIGH
-            );
-            channel.setDescription("Shows the current step count");
-            channel.enableVibration(false);
-            channel.setShowBadge(true);
-            NotificationManager notificationManager = getSystemService(NotificationManager.class);
-            notificationManager.createNotificationChannel(channel);
-        }
+        NotificationChannel channel = new NotificationChannel(
+                CHANNEL_ID,
+                "Fitness App Step Tracking",
+                NotificationManager.IMPORTANCE_HIGH
+        );
+        channel.setDescription("Shows the current step count");
+        channel.enableVibration(false);
+        channel.setShowBadge(true);
+        NotificationManager notificationManager = getSystemService(NotificationManager.class);
+        notificationManager.createNotificationChannel(channel);
     }
 
     @Override
     public void onStepChanged(int stepCount) {
+        // Store current step count
         currentStepCount = stepCount;
+
         // Update notification with new step count
         notificationManager.notify(NOTIFICATION_ID, buildNotification(stepCount));
+
+        // Update the ViewModel
+        updateViewModel(stepCount);
+    }
+
+    private void updateViewModel(int stepCount) {
+        StepTrackingViewModel stepTrackingViewModel = StepTrackingViewModel.getInstance();
+        stepTrackingViewModel.updateStepCount(stepCount);
+        stepTrackingViewModel.updateDistance(stepCount);
     }
 
     @Override

@@ -1,6 +1,7 @@
 package hcmute.edu.vn.huuloc.steptracking.controller;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 
 import hcmute.edu.vn.huuloc.steptracking.listener.StepTracker;
 import hcmute.edu.vn.huuloc.steptracking.model.StepData;
@@ -8,21 +9,39 @@ import hcmute.edu.vn.huuloc.steptracking.repository.StepDataRepository;
 import hcmute.edu.vn.huuloc.steptracking.repository.StepDataRepositoryImpl;
 import lombok.Setter;
 
-public class StepTrackingController implements StepTracker.StepUpdateListener {
-    private Context context;
+public class StepTrackingController {
+    private static final String PREFS_NAME = "StepTrackingPrefs";
+    private static final String CURRENT_STEP_COUNT = "current_step_count";
+
     private final StepTracker stepTracker;
     private final StepDataRepository stepDataRepository;
+    private final Context context;
     @Setter
-    private StepUpdateListener stepUpdateListener;
-
-    public interface StepUpdateListener {
-        void onStepCountUpdated(int stepCount);
-    }
+    private StepTracker.StepUpdateListener stepUpdateListener;
 
     public StepTrackingController(Context context) {
         this.context = context;
         this.stepDataRepository = new StepDataRepositoryImpl(context);
-        this.stepTracker = new StepTracker(context, this);
+        
+        // Create the step tracker with our custom listener
+        this.stepTracker = new StepTracker(context, new StepTracker.StepUpdateListener() {
+            @Override
+            public void onStepChanged(int stepCount) {
+                // Save current step count to preferences for persistence
+                saveStepCountToPrefs(stepCount);
+                
+                // Forward to any external listeners (like the service)
+                if (stepUpdateListener != null) {
+                    stepUpdateListener.onStepChanged(stepCount);
+                }
+            }
+        });
+        
+        // Restore any saved step count
+        int savedSteps = getSavedStepCount();
+        if (savedSteps > 0) {
+            stepTracker.setStepCount(savedSteps);
+        }
     }
 
     public void startTracking() {
@@ -36,17 +55,15 @@ public class StepTrackingController implements StepTracker.StepUpdateListener {
 
     public void resetSteps() {
         stepTracker.resetSteps();
+        saveStepCountToPrefs(0);
     }
 
     public int getCurrentStepCount() {
         return stepTracker.getStepCount();
     }
 
-    @Override
-    public void onStepChanged(int stepCount) {
-        if (stepUpdateListener != null) {
-            stepUpdateListener.onStepCountUpdated(stepCount);
-        }
+    public void setStepCount(int steps) {
+        stepTracker.setStepCount(steps);
     }
 
     private void saveStepsToDatabase(int steps) {
@@ -60,5 +77,15 @@ public class StepTrackingController implements StepTracker.StepUpdateListener {
 
     public int getTotalSteps() {
         return stepDataRepository.getTotalSteps();
+    }
+    
+    private void saveStepCountToPrefs(int count) {
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        prefs.edit().putInt(CURRENT_STEP_COUNT, count).apply();
+    }
+    
+    public int getSavedStepCount() {
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        return prefs.getInt(CURRENT_STEP_COUNT, 0);
     }
 }

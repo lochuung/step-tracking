@@ -6,7 +6,6 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
-import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -15,16 +14,16 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.lifecycle.ViewModelProvider;
 
 import com.google.android.material.button.MaterialButton;
 
 import hcmute.edu.vn.huuloc.steptracking.R;
 import hcmute.edu.vn.huuloc.steptracking.controller.StepTrackingController;
 import hcmute.edu.vn.huuloc.steptracking.controller.StepTrackingService;
-import hcmute.edu.vn.huuloc.steptracking.repository.StepDataRepository;
-import hcmute.edu.vn.huuloc.steptracking.repository.StepDataRepositoryImpl;
+import hcmute.edu.vn.huuloc.steptracking.viewmodel.StepTrackingViewModel;
 
-public class MainActivity extends AppCompatActivity implements StepTrackingController.StepUpdateListener {
+public class MainActivity extends AppCompatActivity {
     private static final int PERMISSION_REQUEST_ACTIVITY_RECOGNITION = 100;
     private static final int PERMISSION_REQUEST_POST_NOTIFICATION = 101;
 
@@ -37,12 +36,10 @@ public class MainActivity extends AppCompatActivity implements StepTrackingContr
     private MaterialButton buttonReset;
 
     private StepTrackingController stepTrackingController;
-    private StepDataRepository stepDataRepository;
+    private StepTrackingViewModel viewModel;
     private boolean isTracking = false;
 
-    // Average stride length in meters - you can make this configurable
-    private static final double STRIDE_LENGTH = 0.762;
-
+    @SuppressLint("DefaultLocale")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -61,19 +58,33 @@ public class MainActivity extends AppCompatActivity implements StepTrackingContr
         buttonStopTracking = findViewById(R.id.buttonStopTracking);
         buttonReset = findViewById(R.id.buttonReset);
 
-        // Initialize database helper
-        stepDataRepository = new StepDataRepositoryImpl(this);
-
         // Initialize controller
         stepTrackingController = new StepTrackingController(this);
-        stepTrackingController.setStepUpdateListener(this);
+
+        // Initialize ViewModel
+        viewModel = StepTrackingViewModel.getInstance();
+
+        // Check if service is already running and get stored step count
+        isTracking = StepTrackingService.isServiceRunning();
+        int currentSteps = stepTrackingController.getSavedStepCount();
+        if (currentSteps > 0) {
+            viewModel.updateStepCount(currentSteps);
+            viewModel.updateDistance(currentSteps);
+        }
 
         // Update UI with any saved steps
         updateStatsUI();
-
-        // Check if service is already running
-        isTracking = StepTrackingService.isServiceRunning();
         updateTrackingUI(isTracking);
+
+        // Lắng nghe khi bước chân thay đổi
+        viewModel.getStepCount().observe(this, stepCount -> {
+            textViewStepCount.setText(String.valueOf(stepCount));
+        });
+
+        // Lắng nghe khi quãng đường thay đổi
+        viewModel.getDistance().observe(this, distance -> {
+            textViewTodayTotal.setText(String.format("%.2f km", distance));
+        });
 
         // Set up button click listeners
         setupButtonListeners();
@@ -89,15 +100,21 @@ public class MainActivity extends AppCompatActivity implements StepTrackingContr
 
         buttonReset.setOnClickListener(v -> {
             stepTrackingController.resetSteps();
-            updateStepCountUI(0);
+            viewModel.updateStepCount(0);
+            viewModel.updateDistance(0);
+            updateStatsUI();
         });
     }
 
     private void startTracking() {
         if (!isTracking) {
+            // Get current step count from controller
+            int currentSteps = stepTrackingController.getCurrentStepCount();
+
             // Start the foreground service for step tracking
             Intent serviceIntent = new Intent(this, StepTrackingService.class);
             serviceIntent.setAction(StepTrackingService.ACTION_START_FOREGROUND_SERVICE);
+            serviceIntent.putExtra(StepTrackingService.EXTRA_STEP_COUNT, currentSteps);
 
             startForegroundService(serviceIntent);
 
@@ -138,28 +155,9 @@ public class MainActivity extends AppCompatActivity implements StepTrackingContr
         }
     }
 
-    @Override
-    public void onStepCountUpdated(int stepCount) {
-        updateStepCountUI(stepCount);
-        updateDistanceUI(stepCount);
-    }
-
-    private void updateStepCountUI(int stepCount) {
-        textViewStepCount.setText(String.valueOf(stepCount));
-    }
-
     private void updateStatsUI() {
-        int totalSteps = stepDataRepository.getTotalSteps();
+        int totalSteps = stepTrackingController.getTotalSteps();
         textViewTotalSteps.setText(String.valueOf(totalSteps));
-
-        // Update distance calculation (km = steps * stride length in meters / 1000)
-        updateDistanceUI(totalSteps);
-    }
-
-    @SuppressLint("DefaultLocale")
-    private void updateDistanceUI(int steps) {
-        double distanceInKm = (steps * STRIDE_LENGTH) / 1000;
-        textViewTodayTotal.setText(String.format("%.2f", distanceInKm));
     }
 
     private void checkAndRequestPermissions() {
@@ -211,13 +209,6 @@ public class MainActivity extends AppCompatActivity implements StepTrackingContr
         if (isTracking != serviceRunning) {
             isTracking = serviceRunning;
             updateTrackingUI(isTracking);
-        }
-
-        // Update step count from service if it's running
-        if (isTracking) {
-            int currentSteps = StepTrackingService.getCurrentStepCount();
-            updateStepCountUI(currentSteps);
-            updateDistanceUI(currentSteps);
         }
 
         // Update stats
