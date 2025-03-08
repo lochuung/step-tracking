@@ -6,9 +6,7 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import hcmute.edu.vn.huuloc.steptracking.model.StepData;
@@ -48,7 +46,7 @@ public class StepDataRepositoryImpl extends SQLiteOpenHelper implements StepData
     }
 
     @Override
-    public Long saveStepData(StepData stepData) {
+    public void saveStepData(StepData stepData) {
         SQLiteDatabase db = this.getWritableDatabase();
 
         ContentValues values = new ContentValues();
@@ -59,7 +57,6 @@ public class StepDataRepositoryImpl extends SQLiteOpenHelper implements StepData
         long id = db.insert(TABLE_NAME, null, values);
 
         db.close();
-        return id;
     }
 
 
@@ -205,5 +202,24 @@ public class StepDataRepositoryImpl extends SQLiteOpenHelper implements StepData
             }
         }
         return stepData;
+    }
+
+    @Override
+    public int getTotalSteps() {
+        int totalSteps = 0;
+
+        String selectQuery = "SELECT SUM(" + COLUMN_STEPS + ") as total FROM " + TABLE_NAME;
+
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.rawQuery(selectQuery, null);
+
+        if (cursor.moveToFirst()) {
+            totalSteps = cursor.getInt(0);
+        }
+
+        cursor.close();
+        db.close();
+
+        return totalSteps;
     }
 }

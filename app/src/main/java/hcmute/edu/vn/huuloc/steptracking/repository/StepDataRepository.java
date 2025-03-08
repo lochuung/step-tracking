@@ -5,7 +5,7 @@ import java.util.List;
 import hcmute.edu.vn.huuloc.steptracking.model.StepData;
 
 public interface StepDataRepository {
-    Long saveStepData(StepData stepData);
+    void saveStepData(StepData stepData);
 
     void updateStepData(StepData stepData);
 
@@ -16,4 +16,6 @@ public interface StepDataRepository {
     List<StepData> getAllStepData();
 
     StepData getStepDataByDate(String date);
+
+    int getTotalSteps();
 }
