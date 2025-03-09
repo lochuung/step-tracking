@@ -8,8 +8,8 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import hcmute.edu.vn.huuloc.steptracking.model.database.AppDatabase;
 import hcmute.edu.vn.huuloc.steptracking.model.dao.StepDataDao;
+import hcmute.edu.vn.huuloc.steptracking.model.database.AppDatabase;
 import hcmute.edu.vn.huuloc.steptracking.model.entity.StepData;
 
 public class StepDataRepositoryImpl implements StepDataRepository {

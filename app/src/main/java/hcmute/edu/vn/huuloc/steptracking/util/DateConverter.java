@@ -1,6 +1,7 @@
 package hcmute.edu.vn.huuloc.steptracking.util;
 
 import androidx.room.TypeConverter;
+
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 

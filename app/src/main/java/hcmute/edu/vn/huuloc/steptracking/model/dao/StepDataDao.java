@@ -6,7 +6,6 @@ import androidx.room.Insert;
 import androidx.room.Query;
 import androidx.room.Update;
 
-import java.time.LocalDate;
 import java.util.List;
 
 import hcmute.edu.vn.huuloc.steptracking.model.entity.StepData;

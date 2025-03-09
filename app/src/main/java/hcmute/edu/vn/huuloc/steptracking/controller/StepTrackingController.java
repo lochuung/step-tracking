@@ -4,7 +4,6 @@ import android.content.Context;
 import android.content.SharedPreferences;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 import hcmute.edu.vn.huuloc.steptracking.listener.StepTracker;
 import hcmute.edu.vn.huuloc.steptracking.model.entity.StepData;
@@ -15,11 +14,9 @@ import lombok.Setter;
 public class StepTrackingController {
     private static final String PREFS_NAME = "StepTrackingPrefs";
     private static final String CURRENT_STEP_COUNT = "current_step_count";
-    private static final String LAST_SAVED_TIMESTAMP = "last_saved_timestamp";
     // Constants for calculations
     private static final double STEP_LENGTH_METERS = 0.762; // Average step length in meters
     private static final double CALORIES_PER_STEP = 0.04; // Average calories burned per step
-    private static final long SAVE_INTERVAL_MS = 3000;
 
     private final StepTracker stepTracker;
     private final StepDataRepository stepDataRepository;
@@ -97,10 +94,6 @@ public class StepTrackingController {
     // Calculate calories burned
     private int calculateCalories(int steps) {
         return (int) (steps * CALORIES_PER_STEP);
-    }
-
-    public int getTotalSteps() {
-        return stepDataRepository.getTotalSteps();
     }
 
     private void saveStepCountToPrefs(int count) {
