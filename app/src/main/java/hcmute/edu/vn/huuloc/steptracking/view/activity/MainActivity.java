@@ -1,4 +1,4 @@
-package hcmute.edu.vn.huuloc.steptracking.view;
+package hcmute.edu.vn.huuloc.steptracking.view.activity;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
@@ -14,14 +14,14 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
-import androidx.lifecycle.ViewModelProvider;
 
 import com.google.android.material.button.MaterialButton;
 
 import hcmute.edu.vn.huuloc.steptracking.R;
 import hcmute.edu.vn.huuloc.steptracking.controller.StepTrackingController;
-import hcmute.edu.vn.huuloc.steptracking.controller.StepTrackingService;
-import hcmute.edu.vn.huuloc.steptracking.viewmodel.StepTrackingViewModel;
+import hcmute.edu.vn.huuloc.steptracking.model.entity.StepData;
+import hcmute.edu.vn.huuloc.steptracking.view.service.StepTrackingService;
+import hcmute.edu.vn.huuloc.steptracking.view.viewmodel.StepTrackingViewModel;
 
 public class MainActivity extends AppCompatActivity {
     private static final int PERMISSION_REQUEST_ACTIVITY_RECOGNITION = 100;
@@ -56,7 +56,6 @@ public class MainActivity extends AppCompatActivity {
         textViewTodayTotal = findViewById(R.id.textViewTodayTotal);
         buttonStartTracking = findViewById(R.id.buttonStartTracking);
         buttonStopTracking = findViewById(R.id.buttonStopTracking);
-        buttonReset = findViewById(R.id.buttonReset);
 
         // Initialize controller
         stepTrackingController = new StepTrackingController(this);
@@ -97,13 +96,6 @@ public class MainActivity extends AppCompatActivity {
         buttonStartTracking.setOnClickListener(v -> startTracking());
 
         buttonStopTracking.setOnClickListener(v -> stopTracking());
-
-        buttonReset.setOnClickListener(v -> {
-            stepTrackingController.resetSteps();
-            viewModel.updateStepCount(0);
-            viewModel.updateDistance(0);
-            updateStatsUI();
-        });
     }
 
     private void startTracking() {
@@ -155,9 +147,11 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    @SuppressLint("DefaultLocale")
     private void updateStatsUI() {
-        int totalSteps = stepTrackingController.getTotalSteps();
-        textViewTotalSteps.setText(String.valueOf(totalSteps));
+        StepData stepData = stepTrackingController.getTodayStepData();
+        textViewTotalSteps.setText(String.valueOf(stepData.getSteps()));
+        textViewTodayTotal.setText(String.format("%.2f km", stepData.getDistance()));
     }
 
     private void checkAndRequestPermissions() {

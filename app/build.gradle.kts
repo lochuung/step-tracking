@@ -34,12 +34,19 @@ android {
 }
 
 dependencies {
+    val room_version = "2.6.1"
+
+    implementation("androidx.room:room-runtime:$room_version")
+    annotationProcessor("androidx.room:room-compiler:$room_version")
+    
     compileOnly("org.projectlombok:lombok:1.18.36")
     annotationProcessor("org.projectlombok:lombok:1.18.36")
-
+    
+    // Add the lombok-mapstruct-binding to help Room work with Lombok
+    implementation("org.projectlombok:lombok-mapstruct-binding:0.2.0")
+    
     implementation("com.google.android.gms:play-services-fitness:21.1.0")
     implementation("com.google.android.gms:play-services-auth:20.5.0")
-
 
     implementation(libs.appcompat)
     implementation(libs.material)

@@ -1,6 +1,6 @@
-package hcmute.edu.vn.huuloc.steptracking.controller;
+package hcmute.edu.vn.huuloc.steptracking.view.service;
 
-import static hcmute.edu.vn.huuloc.steptracking.viewmodel.StepTrackingViewModel.STRIDE_LENGTH;
+import static hcmute.edu.vn.huuloc.steptracking.view.viewmodel.StepTrackingViewModel.STRIDE_LENGTH;
 
 import android.annotation.SuppressLint;
 import android.app.Notification;
@@ -14,15 +14,15 @@ import android.os.IBinder;
 import android.widget.RemoteViews;
 
 import androidx.core.app.NotificationCompat;
-import androidx.lifecycle.ViewModelProvider;
-import androidx.lifecycle.ViewModelStoreOwner;
 
 import hcmute.edu.vn.huuloc.steptracking.R;
+import hcmute.edu.vn.huuloc.steptracking.controller.StepTrackingController;
 import hcmute.edu.vn.huuloc.steptracking.listener.StepTracker;
-import hcmute.edu.vn.huuloc.steptracking.view.MainActivity;
-import hcmute.edu.vn.huuloc.steptracking.viewmodel.StepTrackingViewModel;
+import hcmute.edu.vn.huuloc.steptracking.view.activity.MainActivity;
+import hcmute.edu.vn.huuloc.steptracking.view.viewmodel.StepTrackingViewModel;
 import lombok.Getter;
 
+import java.time.LocalDate;
 
 public class StepTrackingService extends Service implements StepTracker.StepUpdateListener {
     private static final String CHANNEL_ID = "FitnessAppStepTracking";
@@ -41,6 +41,8 @@ public class StepTrackingService extends Service implements StepTracker.StepUpda
     private int currentStepCount = 0;
 
     // Average stride length in meters
+    private int lastMilestoneSteps = 0;
+    private static final int MILESTONE_STEP_THRESHOLD = 1000; // Save data every 1000 steps
 
     @Override
     public void onCreate() {
@@ -171,6 +173,11 @@ public class StepTrackingService extends Service implements StepTracker.StepUpda
 
         // Update the ViewModel
         updateViewModel(stepCount);
+
+        // Check if we've reached another milestone (e.g., every 1000 steps)
+        if (stepCount - lastMilestoneSteps >= MILESTONE_STEP_THRESHOLD) {
+            lastMilestoneSteps = stepCount;
+        }
     }
 
     private void updateViewModel(int stepCount) {

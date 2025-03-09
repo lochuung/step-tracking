@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/colorBackground"
-    tools:context=".view.MainActivity">
+    tools:context=".view.activity.MainActivity">
 
     <!-- App Bar with gradient -->
     <com.google.android.material.appbar.AppBarLayout
@@ -170,23 +170,6 @@
                         app:icon="@drawable/ic_stop"
                         app:iconGravity="textStart"
                         app:iconTint="@android:color/white" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/buttonReset"
-                        android:layout_width="match_parent"
-                        android:layout_height="56dp"
-                        android:layout_marginTop="8dp"
-                        android:fontFamily="sans-serif-medium"
-                        android:text="RESET COUNTER"
-                        android:textColor="@color/colorPrimary"
-                        android:textSize="16sp"
-                        app:backgroundTint="@android:color/transparent"
-                        app:cornerRadius="16dp"
-                        app:icon="@drawable/ic_refresh"
-                        app:iconGravity="textStart"
-                        app:iconTint="@color/colorPrimary"
-                        app:strokeColor="@color/colorPrimary"
-                        app:strokeWidth="1dp" />
 
                 </LinearLayout>
             </androidx.cardview.widget.CardView>

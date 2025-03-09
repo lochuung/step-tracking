@@ -1,11 +1,12 @@
 package hcmute.edu.vn.huuloc.steptracking.repository;
 
+import java.time.LocalDate;
 import java.util.List;
 
-import hcmute.edu.vn.huuloc.steptracking.model.StepData;
+import hcmute.edu.vn.huuloc.steptracking.model.entity.StepData;
 
 public interface StepDataRepository {
-    void saveStepData(StepData stepData);
+    long saveStepData(StepData stepData);
 
     void updateStepData(StepData stepData);
 
@@ -15,7 +16,7 @@ public interface StepDataRepository {
 
     List<StepData> getAllStepData();
 
-    StepData getStepDataByDate(String date);
+    StepData getStepDataByDate(LocalDate date);
 
     int getTotalSteps();
 }
