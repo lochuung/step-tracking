@@ -10,12 +10,16 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import com.google.android.material.button.MaterialButton;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import hcmute.edu.vn.huuloc.steptracking.R;
 import hcmute.edu.vn.huuloc.steptracking.controller.StepTrackingController;
@@ -29,8 +33,8 @@ public class MainActivity extends AppCompatActivity {
 
     private TextView textViewStepCount;
     private TextView textViewStatus;
-    private TextView textViewTotalSteps;
-    private TextView textViewTodayTotal;
+//    private TextView textViewTotalSteps;
+//    private TextView textViewTodayTotal;
     private MaterialButton buttonStartTracking;
     private MaterialButton buttonStopTracking;
     private MaterialButton buttonReset;
@@ -52,8 +56,8 @@ public class MainActivity extends AppCompatActivity {
         // Initialize UI components
         textViewStepCount = findViewById(R.id.textViewStepCount);
         textViewStatus = findViewById(R.id.textViewStatus);
-        textViewTotalSteps = findViewById(R.id.textViewTotalSteps);
-        textViewTodayTotal = findViewById(R.id.textViewTodayTotal);
+//        textViewTotalSteps = findViewById(R.id.textViewTotalSteps);
+//        textViewTodayTotal = findViewById(R.id.textViewTodayTotal);
         buttonStartTracking = findViewById(R.id.buttonStartTracking);
         buttonStopTracking = findViewById(R.id.buttonStopTracking);
 
@@ -81,15 +85,17 @@ public class MainActivity extends AppCompatActivity {
         });
 
         // Lắng nghe khi quãng đường thay đổi
-        viewModel.getDistance().observe(this, distance -> {
-            textViewTodayTotal.setText(String.format("%.2f km", distance));
-        });
+//        viewModel.getDistance().observe(this, distance -> {
+//            textViewTodayTotal.setText(String.format("%.2f km", distance));
+//        });
 
         // Set up button click listeners
         setupButtonListeners();
 
         // Request necessary permissions
-        checkAndRequestPermissions();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            checkAndRequestPermissions();
+        }
     }
 
     private void setupButtonListeners() {
@@ -150,47 +156,61 @@ public class MainActivity extends AppCompatActivity {
     @SuppressLint("DefaultLocale")
     private void updateStatsUI() {
         StepData stepData = stepTrackingController.getTodayStepData();
-        textViewTotalSteps.setText(String.valueOf(stepData.getSteps()));
-        textViewTodayTotal.setText(String.format("%.2f km", stepData.getDistance()));
+        int steps = 0;
+        double distance = 0;
+        if (stepData != null) {
+            steps = stepData.getSteps();
+            distance = stepData.getDistance();
+        }
+//        textViewTotalSteps.setText(String.valueOf(steps));
+//        textViewTodayTotal.setText(String.format("%.2f km", distance));
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
     private void checkAndRequestPermissions() {
-        // Check and request ACTIVITY_RECOGNITION permission for step counter
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACTIVITY_RECOGNITION)
-                    != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(this,
-                        new String[]{Manifest.permission.ACTIVITY_RECOGNITION},
-                        PERMISSION_REQUEST_ACTIVITY_RECOGNITION);
-            }
+        List<String> permissionsToRequest = new ArrayList<>();
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACTIVITY_RECOGNITION)
+                != PackageManager.PERMISSION_GRANTED) {
+            permissionsToRequest.add(Manifest.permission.ACTIVITY_RECOGNITION);
         }
 
-        // Check and request POST_NOTIFICATION permission for foreground service on Android 13+
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
-                    != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(this,
-                        new String[]{Manifest.permission.POST_NOTIFICATIONS},
-                        PERMISSION_REQUEST_POST_NOTIFICATION);
-            }
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED) {
+            permissionsToRequest.add(Manifest.permission.POST_NOTIFICATIONS);
+        }
+
+        if (!permissionsToRequest.isEmpty()) {
+            ActivityCompat.requestPermissions(
+                    this,
+                    permissionsToRequest.toArray(new String[0]),
+                    PERMISSION_REQUEST_ACTIVITY_RECOGNITION // chỉ cần 1 mã request
+            );
         }
     }
+
 
     @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+    public void onRequestPermissionsResult(int requestCode,
+                                           @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 
-        if (requestCode == PERMISSION_REQUEST_ACTIVITY_RECOGNITION) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                Toast.makeText(this, "Step tracking permission granted", Toast.LENGTH_SHORT).show();
-            } else {
-                Toast.makeText(this, "Step tracking permission denied", Toast.LENGTH_SHORT).show();
-            }
-        } else if (requestCode == PERMISSION_REQUEST_POST_NOTIFICATION) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                Toast.makeText(this, "Notification permission granted", Toast.LENGTH_SHORT).show();
-            } else {
-                Toast.makeText(this, "Notification permission denied. Service may not work properly.", Toast.LENGTH_SHORT).show();
+        for (int i = 0; i < permissions.length; i++) {
+            String permission = permissions[i];
+            boolean granted = grantResults[i] == PackageManager.PERMISSION_GRANTED;
+
+            switch (permission) {
+                case Manifest.permission.ACTIVITY_RECOGNITION:
+                    Toast.makeText(this,
+                            granted ? "Step tracking permission granted" : "Step tracking permission denied",
+                            Toast.LENGTH_SHORT).show();
+                    break;
+                case Manifest.permission.POST_NOTIFICATIONS:
+                    Toast.makeText(this,
+                            granted ? "Notification permission granted" : "Notification permission denied. Notifications may not appear.",
+                            Toast.LENGTH_SHORT).show();
+                    break;
             }
         }
     }

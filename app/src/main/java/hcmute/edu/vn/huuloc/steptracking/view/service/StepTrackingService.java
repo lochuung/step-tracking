@@ -143,7 +143,7 @@ public class StepTrackingService extends Service implements StepTracker.StepUpda
                 .setContentText(stepCount + " steps • " + String.format("%.2f", distanceInKm) + " km")
                 .setContentIntent(pendingIntent)
                 .setCustomContentView(notificationLayout)
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setPriority(NotificationCompat.PRIORITY_LOW)
                 .setOngoing(true)
                 .setColor(getResources().getColor(R.color.colorPrimary));
 
@@ -154,7 +154,7 @@ public class StepTrackingService extends Service implements StepTracker.StepUpda
         NotificationChannel channel = new NotificationChannel(
                 CHANNEL_ID,
                 "Fitness App Step Tracking",
-                NotificationManager.IMPORTANCE_HIGH
+                NotificationManager.IMPORTANCE_LOW
         );
         channel.setDescription("Shows the current step count");
         channel.enableVibration(false);
